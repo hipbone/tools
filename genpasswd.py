@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 import os, random, string
 
-tot_length = 14
-char_length = 10
+tot_length = 18
+char_length = 14
 num_length = 2
 schar_length = 2
 pw = []
