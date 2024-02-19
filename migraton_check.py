@@ -4,7 +4,7 @@ import ssl
 from colorama import init, Fore
 
 # variables
-file_path = "url_list"
+file_path = "list"
 hc_path = "/check"
 ssl_verify = False
 
