@@ -44,3 +44,40 @@ ssl_verify = False  # SSL 인증서 검증을 할지 여부 - 서비스 도메�
 
 python migration_check.py
 ```
+
+
+## tf_vmcreate_output_to_csv.py
+
+테라폼으로 VM을 생성한 뒤 출력되는 output 데이터를 팀에서 관리하는 문서에 맞게 가공하는 스크립트
+
+### 환경
+
+* lang : python 3.12
+
+### 사용법
+
+다음과 같이 data 변수에 output 데이터를 복사
+
+```python
+data = [
+    {
+        "availability_zone": "ap-seoul-1",
+        "cpu": 8,
+        "disk": ["vHDD / 50", "vHDD / 10", "vHDD / 100"],
+        "id": "ins-e24fwcbb",
+        "memory": 8,
+        "name": "hostname-was-live-01",
+        "os": "Rocky 8.8",
+        "private_ip": "10.11.31.111",
+        "public_ip": "43.128.156.111",
+    }
+]
+```
+
+스크립트 실행
+
+```bash
+python tf_vmcreate_output_to_csv.py
+```
+
+스크립트 경로에 **instance_info.csv** 파일이 생성된다.
