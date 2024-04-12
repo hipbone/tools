@@ -81,3 +81,14 @@ python tf_vmcreate_output_to_csv.py
 ```
 
 스크립트 경로에 **instance_info.csv** 파일이 생성된다.
+
+## delete_sg_check.sh
+
+서버 반납 시 반납 대상 서버의 SG 정책을 삭제하기 위해 검사하는 스크립트
+ack 도구를 이용해서 프로젝트 경로의 문자열을 검사한다.
+
+### 사용법
+
+```bash
+bash delete_sg_check.sh
+```

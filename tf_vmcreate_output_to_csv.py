@@ -1,17 +1,6 @@
 import csv
 
 data = [
-    {
-        "availability_zone": "ap-seoul-1",
-        "cpu": 8,
-        "disk": ["vHDD / 50", "vHDD / 10", "vHDD / 100"],
-        "id": "ins-e24fwcbb",
-        "memory": 8,
-        "name": "hivecommunity-was-live-c01",
-        "os": "Rocky 8.8",
-        "private_ip": "10.11.31.34",
-        "public_ip": "43.128.156.74",
-    }
 ]
 
 
