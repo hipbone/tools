@@ -5,7 +5,7 @@ from colorama import init, Fore
 
 # variables
 file_path = "list"
-hc_path = "/check.php"
+hc_path = "/check"
 ssl_verify = False
 
 # colorama 초기화
