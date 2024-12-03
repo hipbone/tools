@@ -92,3 +92,17 @@ ack 도구를 이용해서 프로젝트 경로의 문자열을 검사한다.
 ```bash
 bash delete_sg_check.sh
 ```
+
+git diff 테스트
+
+## extract_noti.py
+
+AWS 호스트 장애 또는 네트워크 이슈로 인해 대량의 Ping Fail이 발생할 경우 리스트를 추출하기 위한 스크립트
+
+### 사용법
+
+알람의 내용을 복사해서 data.txt 파일에 붙여 넣고 다음을 실행
+
+```python
+python extract_noti.py
+```
