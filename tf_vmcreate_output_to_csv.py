@@ -1,6 +1,19 @@
 import csv
 
 data = [
+    {
+    "availability_zone" = "ap-northeast-1a"
+    "cpu" = 2
+    "disk" = [
+      "vHDD / 50",
+      "vHDD / 10",
+    ]
+    "id" = "i-0d799d0738c5b25bc"
+    "memory" = 4
+    "private_ip" = "10.30.31.142"
+    "public_ip" = "43.206.205.45"
+    "state" = "running"
+  }
 ]
 
 

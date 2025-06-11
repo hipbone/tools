@@ -5,7 +5,7 @@ from colorama import init, Fore
 
 # variables
 file_path = "list"
-hc_path = "/check"
+hc_path = "/akamai/sureroute-test-object.html"
 ssl_verify = False
 
 # colorama 초기화
@@ -74,18 +74,19 @@ if __name__ == "__main__":
         with open(file_path, "r") as file:
             for line in file.readlines():
                 line = line.strip()
-                print(f"===== {line} check =====")
-                if is_ip_address(line):
-                    # 1. DNS Lookup
-                    print(Fore.YELLOW + f"Skip DNS Lookup : {line}")
-                else:
-                    # 1. DNS Lookup
-                    domain, ip_address = check_dns(line)
-                # 2. HTTP 연결 테스트
-                check_http(line, 80)
-                # 3. HTTPS 연결 테스트
-                check_https(line, 443)
-                print(f"")
+                if line:
+                    print(f"===== {line} check =====")
+                    if is_ip_address(line):
+                        # 1. DNS Lookup
+                        print(Fore.YELLOW + f"Skip DNS Lookup : {line}")
+                    else:
+                        # 1. DNS Lookup
+                        domain, ip_address = check_dns(line)
+                    # 2. HTTP 연결 테스트
+                    check_http(line, 80)
+                    # 3. HTTPS 연결 테스트
+                    check_https(line, 443)
+                    print(f"")
 
     except FileNotFoundError:
         print(Fore.RED + f"파일을 찾을 수 없습니다 : {file_path}")
