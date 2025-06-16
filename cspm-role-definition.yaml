@@ -1,0 +1,21 @@
+title: role_cspm
+description: 
+stage: "GA"
+includedPermissions:
+- accessapproval.settings.get
+- bigquery.tables.get
+- bigquery.tables.list
+- compute.backendServices.get
+- compute.backendServices.list
+- compute.backendServices.use
+- file.backups.get
+- file.backups.list
+- file.backups.listEffectiveTags
+- file.backups.listTagBindings
+- file.locations.get
+- file.locations.list
+- file.operations.get
+- file.operations.list
+- file.snapshots.get
+- firebasestorage.buckets.get
+- storage.buckets.getIamPolicy
