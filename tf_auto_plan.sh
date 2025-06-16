@@ -17,29 +17,24 @@ echo "[INFO] Terraform Auto Runner Started"
 
 for DIR in $changed_dirs; do
     echo "----- [$DIR] -----"
+    echo $PWD
 
-    cd "$DIR" || {
-        echo "[SKIP] $DIR not found"
-        continue
-    }
     INIT_LOG="$LOG_DIR/init_${DIR//\//_}.log"
     PLAN_LOG="$LOG_DIR/plan_${DIR//\//_}.log"
 
     echo "[INIT] Running terraform init in $DIR"
-    terraform init -input=false >"$INIT_LOG" 2>&1
+    terraform -chdir=$DIR init -input=false >"$INIT_LOG" 2>&1
     if [ $? -ne 0 ]; then
         echo "[ERROR] Init failed for $DIR"
         INIT_FAIL+=("$DIR")
-        cd - >/dev/null
         continue
     fi
 
     echo "[PLAN] Running terraform plan in $DIR"
-    terraform plan -input=false -out=tfplan >"$PLAN_LOG" 2>&1
+    terraform -chdir=$DIR plan -input=false >"$PLAN_LOG" 2>&1
     if [ $? -ne 0 ]; then
         echo "[ERROR] Plan failed for $DIR"
         PLAN_FAIL+=("$DIR")
-        cd - >/dev/null
         continue
     fi
 
@@ -50,7 +45,9 @@ for DIR in $changed_dirs; do
         echo "[CHANGE] Detected changes in $DIR"
         PLAN_CHANGES+=("$DIR")
     fi
-    #     echo "[APPLY] Applying changes in $DIR"
+
+    echo "[APPLY] Applying changes in $DIR"
+    terraform -chdir=$i apply
     #     terraform apply -auto-approve tfplan >>"$PLAN_LOG" 2>&1
     #     if [ $? -eq 0 ]; then
     #         APPLY_SUCCESS+=("$DIR")
@@ -58,10 +55,6 @@ for DIR in $changed_dirs; do
     #         echo "[ERROR] Apply failed in $DIR"
     #     fi
     # fi
-
-    # # 정리
-    # rm -f tfplan
-    # cd - >/dev/null
 done
 
 echo ""
