@@ -1,11 +1,7 @@
 #!/bin/bash
 
 profiles='
-iep-manage-iac
-hive-live-iac
-iep-rnd-aws-iac
-hive-sandbox-iac
-hive-test-iac
+iep-manage-aws
 '
 
 # 인스턴스가 없는 계정
@@ -26,5 +22,5 @@ do
     aws ec2 describe-instances --query 'Reservations[*].Instances[*].PublicIpAddress' --output text --profile $profile
 
     # Name, IP, AZ 출력
-    # aws ec2 describe-instances --query "Reservations[*].Instances[*].{Name:Tags[?Key=='Name']|[0].Value,IP:PublicIpAddress,AZ:Placement.AvailabilityZone}" --output text --profile $profile
+    aws ec2 describe-instances --query "Reservations[*].Instances[*].{Name:Tags[?Key=='Name']|[0].Value,IP:PublicIpAddress,AZ:Placement.AvailabilityZone}" --output text --profile $profile
 done
