@@ -54,33 +54,69 @@ python migration_check.py
 
 * lang : python 3.12
 
-### 사용법
+### 지원 입력 포맷
 
-다음과 같이 data 변수에 output 데이터를 복사
+`terraform apply` 또는 `terraform output` 후 출력되는 HCL 형식을 그대로 붙여넣기
 
-```python
-data = [
-    {
-        "availability_zone": "ap-seoul-1",
-        "cpu": 8,
-        "disk": ["vHDD / 50", "vHDD / 10", "vHDD / 100"],
-        "id": "ins-e24fwcbb",
-        "memory": 8,
-        "name": "hostname-was-live-01",
-        "os": "Rocky 8.8",
-        "private_ip": "10.11.31.111",
-        "public_ip": "43.128.156.111",
-    }
-]
+```hcl
+instance = {
+  "axyl-work-test-c01" = {
+    "availability_zone" = "ap-seoul-1"
+    "bwp_attachment_id" = null
+    "cpu"               = 4
+    "disk"              = [
+      "vHDD / 50",
+      "vHDD / 10",
+    ]
+    "id"                = "ins-gdt2v2dz"
+    "memory"            = 8
+    "private_ip"        = "10.25.21.3"
+    "public_ip"         = "150.109.236.78"
+    "state"             = "running"
+  }
+}
 ```
 
-스크립트 실행
+여러 output 블록을 연속으로 붙여넣어도 모두 파싱된다.
+
+### 사용법
+
+**1. 대화형 (붙여넣기)**
 
 ```bash
 python tf_vmcreate_output_to_csv.py
+# 프롬프트에 terraform output 내용을 붙여넣고 Ctrl+D
 ```
 
-스크립트 경로에 **instance_info.csv** 파일이 생성된다.
+**2. 파일로 입력**
+
+```bash
+python tf_vmcreate_output_to_csv.py output.txt
+python tf_vmcreate_output_to_csv.py output.txt result.csv  # 출력 파일명 지정
+```
+
+**3. 파이프**
+
+```bash
+terraform output | python tf_vmcreate_output_to_csv.py
+```
+
+스크립트 경로에 **instance_info.csv** 파일이 생성된다. (엑셀에서 바로 열 수 있도록 UTF-8 BOM 인코딩)
+
+### CSV 컬럼
+
+| 컬럼 | 설명 |
+|------|------|
+| name | 인스턴스 이름 (output의 key) |
+| availability_zone | 가용 영역 |
+| id | 인스턴스 ID |
+| cpu | vCPU 수 |
+| memory | 메모리 (GB) |
+| disk | 디스크 목록 (`, ` 구분) |
+| public_ip | 공인 IP |
+| private_ip | 사설 IP |
+| state | 상태 |
+| os | OS 정보 (수동 입력용, 기본값 공백) |
 
 ## delete_sg_check.sh
 
