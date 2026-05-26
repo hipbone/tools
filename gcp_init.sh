@@ -116,6 +116,9 @@ init_vars() {
 	compute_engine_sa="serviceAccount:${project_number}-compute@developer.gserviceaccount.com"
 	sink_name="gcp-iep-audit-log-sync"
 	topic="projects/iep-manage/topics/gcp-iep-audit-log"
+	# 관리용 계정(iep-manage)과 부여할 역할 목록 (공백 구분)
+	mgmt_account="serviceAccount:iep-manage-596@iep-manage.iam.gserviceaccount.com"
+	mgmt_roles="roles/viewer projects/iep-manage/roles/role_infra_p"
 	log_filter="
 logName=(\"projects/$project_id/logs/cloudaudit.googleapis.com%2Factivity\" OR \"projects/$project_id/logs/cloudaudit.googleapis.com%2Fdata_access\")
 AND -protoPayload.serviceName=\"bigquerybiengine.googleapis.com\" AND -protoPayload.serviceName=\"bigquery.googleapis.com\" AND -protoPayload.serviceName=\"k8s.io\" AND
@@ -146,6 +149,7 @@ confirm() {
 		echo "  - 기본 VPC 네트워크(default) 삭제"
 	fi
 	echo "  - 로그 라우터 싱크 생성 및 pub/sub 게시 권한 부여"
+	echo "  - 관리용 계정(iep-manage)에 역할 부여 (뷰어, role_infra_p)"
 	printf "계속하시겠습니까? [y/N] "
 	read -r answer
 	case "$answer" in
@@ -268,6 +272,17 @@ grant_pubsub_publisher() {
 	echo "  - 권한 부여 대상: $logging_sa"
 }
 
+##### 관리용 계정 액세스 권한 부여 #####
+grant_management_access() {
+	echo "[관리] 관리용 계정에 역할 부여: $mgmt_account"
+	local role
+	for role in $mgmt_roles; do
+		run gcloud projects add-iam-policy-binding "$project_id" \
+			--member="$mgmt_account" --role="$role" --condition=None >/dev/null
+		echo "  - 부여: $role"
+	done
+}
+
 ### 수행 결과 출력 ###
 report() {
 	echo ""
@@ -314,6 +329,13 @@ report() {
 		--flatten="bindings[].members" \
 		--filter="bindings.role:roles/pubsub.publisher AND bindings.members:$logging_sa" \
 		--format="table(bindings.role, bindings.members)"
+	echo ""
+
+	echo "7. 관리용 계정 역할 부여 확인 - $mgmt_account"
+	gcloud projects get-iam-policy "$project_id" \
+		--flatten="bindings[].members" \
+		--filter="bindings.members:$mgmt_account" \
+		--format="table(bindings.role)"
 }
 
 main() {
@@ -339,6 +361,7 @@ main() {
 
 	create_log_sink
 	grant_pubsub_publisher
+	grant_management_access
 	report
 }
 
