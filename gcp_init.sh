@@ -168,15 +168,17 @@ else
 fi
 
 ## 로그 라우터 싱크 서비스 계정 가져오기 ##
-logging_sa=$(gcloud logging sinks describe $sink_name --project=$project_id --format="value(writerIdentity)")
+logging_sa=$(gcloud logging sinks describe "$sink_name" --project="$project_id" --format="value(writerIdentity)")
+if [ -z "$logging_sa" ]; then
+	echo "오류: 로그 싱크 '$sink_name'의 서비스 계정(writerIdentity)을 가져오지 못했습니다." >&2
+	exit 1
+fi
 
-# --member="serviceAccount:service-1014411968784@gcp-sa-logging.iam.gserviceaccount.com" \
-  
 ##### 로그 라우터 싱크 계정에 pub/sub 게시 권한 부여 #####
-gcloud pubsub topics add-iam-policy-binding $topic \
+gcloud pubsub topics add-iam-policy-binding "$topic" \
   --member="$logging_sa" \
-  --role=roles/pubsub.publisher \
-  --project=$project_id
+  --role="roles/pubsub.publisher" \
+  --project="$project_id"
 
 ### 수행 결과 ###
 echo "##############################"
@@ -200,7 +202,7 @@ echo "4. Firewall Rules 목록"
 gcloud compute firewall-rules list --project=$project_id --format=json
 echo ""
 echo "5. 로그 라우터 싱크 정보 - ${sink_name}"
-gcloud logging sinks describe gcp-iep-audit-log-sync --project=${project_id}
+gcloud logging sinks describe "$sink_name" --project="$project_id"
 echo ""
 echo "6. 로그 라우터 싱크 서비스 계정에 pub/sub 게시 권한 부여 확인"
 echo ""
