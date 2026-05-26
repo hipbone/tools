@@ -116,9 +116,21 @@ init_vars() {
 	compute_engine_sa="serviceAccount:${project_number}-compute@developer.gserviceaccount.com"
 	sink_name="gcp-iep-audit-log-sync"
 	topic="projects/iep-manage/topics/gcp-iep-audit-log"
-	# 관리용 계정(iep-manage)과 부여할 역할 목록 (공백 구분)
+	# 관리용 계정과 부여할 역할 (공백 구분)
+	#  - roles/viewer (뷰어)
+	#  - role_infra_p: 조직 수준 커스텀 역할. 콘솔 표시명은 "role_infra_p"이지만
+	#    실제 역할 ID는 CustomRole433 → organizations/<ORG_ID>/roles/CustomRole433
+	#    (조직 ID는 프로젝트 조상에서 자동 탐지)
 	mgmt_account="serviceAccount:iep-manage-596@iep-manage.iam.gserviceaccount.com"
-	mgmt_roles="roles/viewer projects/iep-manage/roles/role_infra_p"
+	# get-ancestors는 --filter 미지원 → type,id를 뽑아 awk로 조직만 추출
+	org_id=$(gcloud projects get-ancestors "$project_id" \
+		--format="value(type,id)" 2>/dev/null | awk '$1=="organization"{print $2}')
+	mgmt_roles="roles/viewer"
+	if [ -n "$org_id" ]; then
+		mgmt_roles="$mgmt_roles organizations/${org_id}/roles/CustomRole433"
+	else
+		echo "경고: 조직을 찾지 못해 role_infra_p(CustomRole433) 부여를 건너뜁니다." >&2
+	fi
 	log_filter="
 logName=(\"projects/$project_id/logs/cloudaudit.googleapis.com%2Factivity\" OR \"projects/$project_id/logs/cloudaudit.googleapis.com%2Fdata_access\")
 AND -protoPayload.serviceName=\"bigquerybiengine.googleapis.com\" AND -protoPayload.serviceName=\"bigquery.googleapis.com\" AND -protoPayload.serviceName=\"k8s.io\" AND
@@ -277,9 +289,12 @@ grant_management_access() {
 	echo "[관리] 관리용 계정에 역할 부여: $mgmt_account"
 	local role
 	for role in $mgmt_roles; do
-		run gcloud projects add-iam-policy-binding "$project_id" \
-			--member="$mgmt_account" --role="$role" --condition=None >/dev/null
-		echo "  - 부여: $role"
+		if run gcloud projects add-iam-policy-binding "$project_id" \
+			--member="$mgmt_account" --role="$role" --condition=None >/dev/null; then
+			echo "  - 부여 완료: $role"
+		else
+			echo "  - 부여 실패: $role (역할 경로/계층 확인 필요)" >&2
+		fi
 	done
 }
 
