@@ -1,6 +1,28 @@
 #!/bin/bash
 
-project_id="hive-aas-test"
+usage() {
+	cat <<EOF
+사용법: $(basename "$0") <PROJECT_ID>
+
+GCP 프로젝트에 보안 기준(CIS) 초기 설정을 적용합니다.
+
+인자:
+  PROJECT_ID    초기화할 GCP 프로젝트 ID (필수)
+
+예시:
+  $(basename "$0") hive-aas-test
+EOF
+}
+
+# 프로젝트 ID 인자 확인
+if [ $# -lt 1 ] || [ -z "$1" ]; then
+	echo "오류: PROJECT_ID가 필요합니다." >&2
+	echo "" >&2
+	usage >&2
+	exit 1
+fi
+
+project_id="$1"
 project_number=$(gcloud projects describe $project_id --format="value(projectNumber)")
 app_engine_sa="serviceAccount:${project_id}@appspot.gserviceaccount.com"
 compute_engine_sa="serviceAccount:${project_number}-compute@developer.gserviceaccount.com"
