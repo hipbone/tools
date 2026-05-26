@@ -56,6 +56,21 @@ EOF
 	esac
 }
 
+# roles/editor 바인딩이 있을 때만 제거 (멱등)
+remove_editor_binding() {
+	local member="$1"
+	if gcloud projects get-iam-policy "$project_id" \
+		--flatten="bindings[].members" \
+		--filter="bindings.role=roles/editor AND bindings.members=$member" \
+		--format="value(bindings.role)" 2>/dev/null | grep -q .; then
+		gcloud projects remove-iam-policy-binding "$project_id" \
+			--member="$member" --role="roles/editor" >/dev/null
+		echo "  - roles/editor 제거됨: $member"
+	else
+		echo "  - roles/editor 없음 (건너뜀): $member"
+	fi
+}
+
 # 인자 파싱
 assume_yes=false
 project_id=""
@@ -110,34 +125,47 @@ AND -protoPayload.serviceName=\"bigquerybiengine.googleapis.com\" AND -protoPayl
 confirm
 
 ##### 1.1.5 서비스 계정에 관리자 권한 부여 제한 #####
-# App Engine default SA
-gcloud projects remove-iam-policy-binding "$project_id" \
-	--member="$app_engine_sa" \
-	--role="roles/editor"
-
-# Compute Engine default SA
-gcloud projects remove-iam-policy-binding "$project_id" \
-	--member="$compute_engine_sa" \
-	--role="roles/editor"
+echo "[1.1.5] 기본 SA의 roles/editor 제거"
+remove_editor_binding "$app_engine_sa"     # App Engine default SA
+remove_editor_binding "$compute_engine_sa" # Compute Engine default SA
 
 
 ##### 1.3.2 기본 방화벽 정책 삭제 #####
-gcloud compute firewall-rules delete default-allow-icmp \
-  default-allow-internal \
-  default-allow-rdp \
-  default-allow-ssh \
-  --project=$project_id \
-  --quiet
+echo "[1.3.2] 기본 방화벽 규칙 삭제"
+for rule in default-allow-icmp default-allow-internal default-allow-rdp default-allow-ssh; do
+	if gcloud compute firewall-rules describe "$rule" --project="$project_id" >/dev/null 2>&1; then
+		gcloud compute firewall-rules delete "$rule" --project="$project_id" --quiet
+		echo "  - 삭제됨: $rule"
+	else
+		echo "  - 없음 (건너뜀): $rule"
+	fi
+done
 
 ##### 7.1.1 프로젝트 내 기본 네트워크 사용 제한 #####
-gcloud compute networks delete default --project=$project_id --quiet
+echo "[7.1.1] 기본 VPC 네트워크(default) 삭제"
+if gcloud compute networks describe default --project="$project_id" >/dev/null 2>&1; then
+	gcloud compute networks delete default --project="$project_id" --quiet
+	echo "  - 삭제됨: default"
+else
+	echo "  - 없음 (건너뜀): default"
+fi
 
 
 ##### 5.1.1 로그 라우터 싱크 생성 #####
-gcloud logging sinks create "$sink_name" \
-    "pubsub.googleapis.com/$topic" \
-    --log-filter="$log_filter" \
-    --project=$project_id
+echo "[5.1.1] 로그 라우터 싱크 생성/업데이트: $sink_name"
+if gcloud logging sinks describe "$sink_name" --project="$project_id" >/dev/null 2>&1; then
+	gcloud logging sinks update "$sink_name" \
+	    "pubsub.googleapis.com/$topic" \
+	    --log-filter="$log_filter" \
+	    --project="$project_id"
+	echo "  - 업데이트됨: $sink_name"
+else
+	gcloud logging sinks create "$sink_name" \
+	    "pubsub.googleapis.com/$topic" \
+	    --log-filter="$log_filter" \
+	    --project="$project_id"
+	echo "  - 생성됨: $sink_name"
+fi
 
 ## 로그 라우터 싱크 서비스 계정 가져오기 ##
 logging_sa=$(gcloud logging sinks describe $sink_name --project=$project_id --format="value(writerIdentity)")
