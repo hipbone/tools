@@ -66,14 +66,25 @@ class GitLabClient:
         return projects
 
     def get_commit_count(
-        self, project_id: int, ref_name: str = None
+        self,
+        project_id: int,
+        ref_name: str = None,
+        since: Optional[str] = None,
+        until: Optional[str] = None,
     ) -> tuple[int, Optional[str]]:
-        """프로젝트의 커밋 수와 마지막 커밋 날짜 가져오기"""
+        """프로젝트의 커밋 수와 마지막 커밋 날짜 가져오기
+
+        since/until이 주어지면 해당 기간(ISO 8601)의 커밋만 집계한다.
+        """
         if not ref_name or ref_name == "null":
             return 0, None
 
         url = f"{self.url}/api/v4/projects/{project_id}/repository/commits"
         params = {"ref_name": ref_name, "per_page": 100}
+        if since:
+            params["since"] = since
+        if until:
+            params["until"] = until
 
         try:
             # 첫 페이지 요청하여 마지막 커밋 날짜와 전체 개수 확인
@@ -102,7 +113,7 @@ class GitLabClient:
                     total_count = len(data)
                 else:
                     # 마지막 페이지를 요청하여 정확한 개수 계산
-                    last_page_params = {"ref_name": ref_name, "per_page": per_page, "page": total_pages}
+                    last_page_params = {**params, "per_page": per_page, "page": total_pages}
                     last_response = requests.get(url, headers=self.headers, params=last_page_params)
                     last_response.raise_for_status()
                     last_data = last_response.json()
@@ -112,7 +123,7 @@ class GitLabClient:
                 total_count = len(data)
                 page = 2
                 while len(data) == params["per_page"]:
-                    page_params = {"ref_name": ref_name, "per_page": 100, "page": page}
+                    page_params = {**params, "per_page": 100, "page": page}
                     page_response = requests.get(url, headers=self.headers, params=page_params)
                     page_response.raise_for_status()
                     data = page_response.json()
@@ -141,6 +152,7 @@ def main():
   %(prog)s my-group --url https://gitlab.example.com
   %(prog)s my-group --token glpat-xxxxxxxxxxxx
   %(prog)s my-group --url https://gitlab.example.com --token glpat-xxxxxxxxxxxx --output commits.csv
+  %(prog)s my-group --since 2026-01-01 --until 2026-06-16
         """,
     )
 
@@ -157,8 +169,28 @@ def main():
     )
     parser.add_argument("--no-subgroups", action="store_true", help="하위 그룹 제외")
     parser.add_argument("--output", "-o", help="결과를 CSV 파일로 저장")
+    parser.add_argument(
+        "--since",
+        help="이 날짜 이후의 커밋만 집계 (예: 2026-01-01, ISO 8601)",
+    )
+    parser.add_argument(
+        "--until",
+        help="이 날짜 이전의 커밋만 집계 (예: 2026-06-16, ISO 8601)",
+    )
 
     args = parser.parse_args()
+
+    # 기간 인자 정규화 (날짜만 입력 시 ISO 8601 형식으로 보정)
+    def normalize_dt(value: Optional[str], end_of_day: bool) -> Optional[str]:
+        if not value:
+            return None
+        # 날짜만(YYYY-MM-DD) 입력된 경우 시각을 보정
+        if len(value) == 10 and value.count("-") == 2:
+            return f"{value}T23:59:59Z" if end_of_day else f"{value}T00:00:00Z"
+        return value
+
+    since = normalize_dt(args.since, end_of_day=False)
+    until = normalize_dt(args.until, end_of_day=True)
 
     # 토큰 확인
     if not args.token:
@@ -178,6 +210,8 @@ def main():
     print(f"GitLab URL: {args.url}")
     print(f"그룹 ID: {args.group_id}")
     print(f"하위 그룹 포함: {not args.no_subgroups}")
+    if since or until:
+        print(f"기간: {since or '처음'} ~ {until or '현재'}")
     print()
 
     # 프로젝트 목록 가져오기
@@ -202,7 +236,7 @@ def main():
         print(f"[{idx}/{len(projects)}] {project_name} 처리 중...", file=sys.stderr)
 
         commit_count, last_commit_date = client.get_commit_count(
-            project_id, default_branch
+            project_id, default_branch, since=since, until=until
         )
 
         # 날짜 포맷팅
